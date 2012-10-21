@@ -18,7 +18,9 @@ class ArchiveUploader {
     public function __construct() {
         $this->datetime = date("Ymd") . "T" . date("His", time() - 14400) . "Z";
         $this->query['body'] = json_encode(array(
-            "Type" => "inventory-retrieval",
+            "Type" => "archive-retrieval",
+            "ArchiveId" => 'AAO033XxszSV-cxnSKFrYfm6bbfLE_tbh4qUl4wcTibz5QDjJP40BZhaYT6d8dHhlDd63zcqmlUKWb1vH4zys7vcH24VlGA956Y5URn8IQJm9dMGDTD9whQ5wSjR66Ff-r3ATn5WrA',
+                //"SNSTopic" => "arn:aws:glacier:us-east-1:115024483680:vaults/TestBeckupStorage",  
                 ));
         //$this->query = array('body' => array());
     }
@@ -54,7 +56,8 @@ class ArchiveUploader {
             CURLOPT_POSTFIELDS => $this->query['body'],
             CURLOPT_RETURNTRANSFER => 1,
             CURLOPT_VERBOSE => 1,
-            CURLOPT_STDERR => $fp
+            CURLOPT_STDERR => $fp,
+            CURLOPT_HEADER => 1,
         ));
         $data = curl_exec($ch);
         // $info = curl_getinfo($ch);
@@ -178,6 +181,6 @@ class ArchiveUploader {
 }
 
 $uploader = new ArchiveUploader();
-print_r($uploader->canonical_request());
+//print_r($uploader->canonical_request());
 print_r($uploader->upload());
 ?>
