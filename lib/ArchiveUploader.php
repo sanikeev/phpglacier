@@ -13,9 +13,12 @@ class ArchiveUploader {
         'vault' => 'TestBeckupStorage',
         'datetime'
     );
-
+    protected $query = array('body' => array());
+    
+    
     public function __construct() {
         $this->datetime = date("Ymd") . "T" . date("His", time() - 14400) . "Z";
+        //$this->query = array('body' => array());
     }
 
     public function upload() {
@@ -66,15 +69,14 @@ class ArchiveUploader {
     }
 
     public function string_to_sign() {
-//         $parts = array();
-//        $parts[] = 'AWS4-HMAC-SHA256';
-//        $parts[] = "20120525T002453Z";
-//        $parts[] = "20120525/us-east-1/glacier/aws4_request";
-//        //$parts[] = $this->hex16($this->hash($this->canonical_request()));
-//         $parts[] = '5f1da1a2d0feb614dd03d71e87928b8e449ac87614479332aced3a701f916743';
-//        $this->string_to_sign = implode("\n", $parts);
-//        return $this->string_to_sign;
-        return "AWS4-HMAC-SHA256\n20120525T002453Z\n20120525/us-east-1/glacier/aws4_request\n5f1da1a2d0feb614dd03d71e87928b8e449ac87614479332aced3a701f916743";
+        $parts = array();
+        $parts[] = 'AWS4-HMAC-SHA256';
+        $parts[] = "20120525T002453Z";
+        $parts[] = "20120525/us-east-1/glacier/aws4_request";
+        $parts[] = $this->hex16($this->hash($this->canonical_request()));
+        //$parts[] = '5f1da1a2d0feb614dd03d71e87928b8e449ac87614479332aced3a701f916743';
+        $this->string_to_sign = implode("\n", $parts);
+        return $this->string_to_sign;
     }
 
 //    public function string_to_sign() {
@@ -95,19 +97,21 @@ class ArchiveUploader {
 
     public function canonical_request() {
         $parts = array();
-        $parts['method'] = 'POST';
+        $parts['method'] = 'PUT';
         $parts['uri'] = $this->canonicalUri();
+        $parts['empty'] = '';
         $parts['headers'] = array(
-            'host: glacier.us-east-1.amazonaws.com',
-            'date:' . $this->datetime,
-            'x-amz-glacier-version: 2012-06-01',
+            'host:glacier.us-east-1.amazonaws.com',
+            'x-amz-date:20120525T002453Z',
+            'x-amz-glacier-version:2012-06-01',
         );
+        $parts['empt'] = $parts['empty'];
         $parts['signed_headers'] = implode(';', array(
             'host',
             'x-amz-date',
             'x-amz-glacier-version'
                 ));
-        $parts['request_body'] = $this->hex16($this->hash("")); // тут пусто тк тело запроса пустое
+        $parts['request_body'] = $this->hex16($this->hash($this->canonical_querystring())); // тут пусто тк тело запроса пустое
         $parts['headers'] = implode("\n", $parts['headers']);
         $canonical_request = implode("\n", $parts);
 
@@ -115,7 +119,8 @@ class ArchiveUploader {
     }
 
     public function canonicalUri() {
-        return 'http://glacier.' . $this->_config['region'] . '.amazonaws.com/' . $this->_config['accountID'] . '/vaults/' . $this->_config['vault'] . '/jobs';
+        //return 'http://glacier.' . $this->_config['region'] . '.amazonaws.com/' . $this->_config['accountID'] . '/vaults/' . $this->_config['vault'] . '/jobs';
+        return '/-/vaults/examplevault';
     }
 
     public function signed_headers() {
@@ -127,6 +132,29 @@ class ArchiveUploader {
 
         $signed_headers = implode(";", $arrHeaders);
         return 'SignedHeaders=' . $signed_headers;
+    }
+
+    protected function canonical_querystring() {
+        if (!isset($this->canonical_querystring)) {
+            $this->canonical_querystring = $this->to_signable_string($this->query['body']);
+        }
+
+        return $this->canonical_querystring;
+    }
+
+    public function to_signable_string($array) {
+        $t = array();
+
+        foreach ($array as $k => $v) {
+            $t[] = $this->encode_signature($k) . '=' . $this->encode_signature($v);
+        }
+
+        return implode('&', $t);
+    }
+
+    public function encode_signature($string) {
+        $string = rawurlencode($string);
+        return str_replace('%7E', '~', $string);
     }
 
     protected function hmac($key, $string) {
@@ -155,5 +183,5 @@ class ArchiveUploader {
 
 $uploader = new ArchiveUploader();
 //print_r($uploader->upload());
-print_r($uploader->get_signed_key());
+print_r($uploader->string_to_sign());
 ?>
