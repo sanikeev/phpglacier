@@ -56,26 +56,38 @@ class ArchiveUploader {
         //$secretKey = 'tz4oex8nUAiCR747HkZ1T67E1Nlj1Is1cgHQU2ba';
         $skey = 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY';
 
-        $k_date = $this->hmac('AWS4' . $skey, "20120525"/* substr($datetime, 0, 8) */);
-        $k_region = $this->hmac($k_date, "us-east-1");
-        $k_service = $this->hmac($k_region, "glacier");
+        $k_date = $this->hmac('AWS4' . $skey, '20120525'/* substr($datetime, 0, 8) */);
+        $k_region = $this->hmac($k_date, 'us-east-1');
+        $k_service = $this->hmac($k_region, 'glacier');
         $k_credentials = $this->hmac($k_service, 'aws4_request');
-        $signature = $this->hmac($k_credentials, $this->string_to_sign("20120525"));
+        $signature = $this->hmac($k_credentials, $this->string_to_sign());
 
-        return $signature;
+        return bin2hex($signature);
     }
 
     public function string_to_sign() {
-        $parts = array();
-        $parts[] = 'AWS4-HMAC-SHA256';
-        $parts[] = $this->datetime;
-        $parts[] = "20120525/us-east-1/glacier/aws4_request";
-        $parts[] = $this->hex16($this->hash($this->canonical_request()));
-
-        $this->string_to_sign = implode("\n", $parts);
-
-        return $this->string_to_sign;
+//         $parts = array();
+//        $parts[] = 'AWS4-HMAC-SHA256';
+//        $parts[] = "20120525T002453Z";
+//        $parts[] = "20120525/us-east-1/glacier/aws4_request";
+//        //$parts[] = $this->hex16($this->hash($this->canonical_request()));
+//         $parts[] = '5f1da1a2d0feb614dd03d71e87928b8e449ac87614479332aced3a701f916743';
+//        $this->string_to_sign = implode("\n", $parts);
+//        return $this->string_to_sign;
+        return "AWS4-HMAC-SHA256\n20120525T002453Z\n20120525/us-east-1/glacier/aws4_request\n5f1da1a2d0feb614dd03d71e87928b8e449ac87614479332aced3a701f916743";
     }
+
+//    public function string_to_sign() {
+//        $parts = array();
+//        $parts[] = 'AWS4-HMAC-SHA256';
+//        $parts[] = "20120525";
+//        $parts[] = "20120525/us-east-1/glacier/aws4_request";
+//        $parts[] = $this->hex16($this->hash($this->canonical_request()));
+//
+//        $this->string_to_sign = implode("\n", $parts);
+//
+//        return $this->string_to_sign;
+//    }
 
     public function credentials($datetime = NULL) {
         
@@ -94,7 +106,7 @@ class ArchiveUploader {
             'host',
             'x-amz-date',
             'x-amz-glacier-version'
-        ));
+                ));
         $parts['request_body'] = $this->hex16($this->hash("")); // тут пусто тк тело запроса пустое
         $parts['headers'] = implode("\n", $parts['headers']);
         $canonical_request = implode("\n", $parts);
@@ -112,14 +124,14 @@ class ArchiveUploader {
             'x-amz-date',
             'x-amz-glacier-version'
         );
-        
+
         $signed_headers = implode(";", $arrHeaders);
         return 'SignedHeaders=' . $signed_headers;
     }
 
     protected function hmac($key, $string) {
 
-        return hash_hmac('sha256', $string, $key, TRUE);
+        return hash_hmac('sha256', $string, $key, true);
     }
 
     protected function hex16($value) {
@@ -143,5 +155,5 @@ class ArchiveUploader {
 
 $uploader = new ArchiveUploader();
 //print_r($uploader->upload());
-print_r($uploader->canonical_request());
+print_r($uploader->get_signed_key());
 ?>
