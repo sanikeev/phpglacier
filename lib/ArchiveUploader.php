@@ -13,30 +13,34 @@ class ArchiveUploader {
         'vault' => 'TestBeckupStorage',
         'datetime'
     );
-    protected $query = array('body' => array());
+    protected $query = array('body' => '');
 
     public function __construct() {
         $this->datetime = date("Ymd") . "T" . date("His", time() - 14400) . "Z";
+        $this->query['body'] = json_encode(array(
+            "Type" => "inventory-retrieval",
+                ));
         //$this->query = array('body' => array());
     }
 
     public function upload() {
 
-
-
-
-        $derived_key = $this->get_signed_key();
-        $accountID = '115024483680';
-        $vaultName = 'TestBeckupStorage';
         $jsonData = array(
             'Type' => 'inventory-retrieval'
         );
 
-        
-        $fp = fopen(dirname(__FILE__).'/errorlog.txt', 'w'); 
-        
-        $jsonString = json_encode($jsonData);
-        $this->query['body'] = array($jsonString); // по ходу вся соль сдесь
+        //$this->query['body'] = $jsonData; // по ходу вся соль сдесь
+
+        $derived_key = $this->get_signed_key();
+        $accountID = '115024483680';
+        $vaultName = 'TestBeckupStorage';
+
+
+
+        $fp = fopen(dirname(__FILE__) . '/errorlog.txt', 'w');
+
+        // $jsonString = json_encode($jsonData);
+
         $ch = curl_init();
         curl_setopt_array($ch, array(
             CURLOPT_URL => 'http://glacier.us-east-1.amazonaws.com/' . $this->_config['accountID'] . '/vaults/' . $this->_config['vault'] . '/jobs',
@@ -51,7 +55,6 @@ class ArchiveUploader {
             CURLOPT_RETURNTRANSFER => 1,
             CURLOPT_VERBOSE => 1,
             CURLOPT_STDERR => $fp
-            
         ));
         $data = curl_exec($ch);
         // $info = curl_getinfo($ch);
@@ -127,7 +130,7 @@ class ArchiveUploader {
         return 'SignedHeaders=' . $signed_headers;
     }
 
-    protected function canonical_querystring() {
+    public function canonical_querystring() {
         if (!isset($this->canonical_querystring)) {
             $this->canonical_querystring = $this->to_signable_string($this->query['body']);
         }
@@ -138,11 +141,11 @@ class ArchiveUploader {
     public function to_signable_string($array) {
         $t = array();
 
-        foreach ($array as $k => $v) {
-            $t[] = $this->encode_signature($k) . '=' . $this->encode_signature($v);
-        }
-
-        return implode('&', $t);
+//        foreach ($array as $k => $v) {
+//            $t[] = $this->encode_signature($k) . '=' . $this->encode_signature($v);
+//        }
+        //return implode('&', $t);
+        return $array;
     }
 
     public function encode_signature($string) {
@@ -175,6 +178,6 @@ class ArchiveUploader {
 }
 
 $uploader = new ArchiveUploader();
-//print_r($uploader->canonical_request());
+print_r($uploader->canonical_request());
 print_r($uploader->upload());
 ?>
